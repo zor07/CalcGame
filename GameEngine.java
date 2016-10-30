@@ -1,8 +1,7 @@
 package zor07.develop.com.calcgame;
 
 
-import android.os.Handler;
-
+import java.util.Date;
 import java.util.Random;
 
 /**
@@ -16,34 +15,22 @@ public class GameEngine {
     private static GameEngine instance;
 
     /**
-     * Текущее число, отображаемое на экране
+     * Текущее число, отображаемое на экране;
+     * Заработанные очки;
+     * Текущий уровень;
+     * Количество правильных ответов подряд;
+     * Количество жизней;
      */
-    private static int number;
+    private int number,
+                score,
+                level,
+                rightAnswersInARow,
+                lifes;
 
     /**
-     * Количество миллисекунд на игру
+     * Время последнего ответа (Используется для вычисления количества заработанных очков)
      */
-    private int milliseconds, millisecondsPrev;
-
-    /**
-     * Заработанные очки, текущий уровень
-     */
-    private int score, level;
-
-    /**
-     * Оставшееся время
-     */
-    private String time;
-
-    /**
-     * Индикатор того, идет ли в данный момент игра
-     */
-    private boolean playing;
-
-    /**
-     * Количество правильных ответов подряд
-     */
-    private int rightAnswersInARow;
+    private Date lastAnswerTime;
 
     /**
      * Закрытый конструктор класса
@@ -51,58 +38,23 @@ public class GameEngine {
     private GameEngine(){
     }
 
-
-    public boolean isPlaying() {
-        return playing;
-    }
-
     public int getScore() {
         return score;
-    }
-
-    public int getRightAnswersInARow() {
-        return rightAnswersInARow;
     }
 
     public int getLevel() {
         return level;
     }
 
-    public String getTime() {
-        return time;
-    }
-
-
     public void newGame(){
-        resetTimer();
-        playing = true;
-        millisecondsPrev = milliseconds;
+        lastAnswerTime = new Date();
+        lifes = 4;
         rightAnswersInARow = 0;
         score = 0;
     }
 
-    private void resetTimer(){
-        milliseconds = 20000;
-    }
-
-    public void runTimer(){
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                int seconds = milliseconds / 1000;
-                int minutes = seconds / 60;
-
-                time = String.format("%d:%02d:%03d", minutes, seconds, milliseconds);
-                if (milliseconds >= 10){
-                    milliseconds -= 10;
-                } else {
-                    playing = false;
-                    //number.setText("Game Over");
-                }
-                handler.postDelayed(this, 10);
-            }
-        });
+    public boolean isPlaying(){
+        return lifes > 0;
     }
 
     /**
@@ -127,23 +79,23 @@ public class GameEngine {
         return rightAnswer;
     }
 
+    public  int getLifes() {
+        return lifes;
+    }
 
     private void updateData(boolean rightAnswer){
-        level = (rightAnswersInARow / 4) + 1;
+        int points = (int) (100000 - (new Date().getTime() - lastAnswerTime.getTime())) * level / 100;
         if (rightAnswer){
-            int points = ((millisecondsPrev - milliseconds) / 100 ) * level;
+
             score += points;
-
             rightAnswersInARow ++;
-            milliseconds += 2000 * level;
-            millisecondsPrev = milliseconds;
         } else {
+            score -= points;
             rightAnswersInARow = 0;
-            milliseconds -= 2000;
-            if (milliseconds < 0) milliseconds = 0;
+            lifes --;
         }
-
-
+        level = (rightAnswersInARow / 5) + 1;
+        lastAnswerTime = new Date();
     }
 
     /**
@@ -151,7 +103,7 @@ public class GameEngine {
      * @return число для вычисления или 0, если playing = false;
      */
     public int getNextNo() {
-        if (!playing) return 0;
+        if (lifes == 0) return 0;
         Random r = new Random(System.currentTimeMillis());
         int complexity = calcComplexity();
 
